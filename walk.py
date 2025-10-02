@@ -42,7 +42,8 @@ def main(args = None):
 	rclypy.init(args=args)
 	turtle_controller = Walk()
 	rclpy.spin(turtle_controller)
-	turtle_controller ... (destoy)
+	turtle_controller.destroy_node()
+	rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
