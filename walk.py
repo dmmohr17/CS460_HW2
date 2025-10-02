@@ -1,0 +1,46 @@
+## need rlcpy
+from geometry_msgs.msg import Twist
+from sensor_msgs.mgs import LaserScan
+
+class Walk(Node):
+	def __init__(self):
+		super().__init__('Walk')
+		self.cmd_pub = self.create_publisher(Twist,'/cmd_vel', 10)
+		timer_period = 0.5 # seconds
+		self.timer = self.create_timer(timer_period, self.timer_callback)
+		self.time = 0
+		self.whisker = 5.0
+		self.linear_speed = 0.8
+		self.move_cmd = Twist()
+		self.move_cmd.linear.x = self.linear_speed
+		self.subscription = self.create_subscription(
+			LaserScan,
+			'/base_scan',
+			self.sensor_callback,
+			20)
+		#self.subscription # prevent unused variable warning
+
+	def sensor_callback(self, msg):
+		middle_sensor = int(len(msg.rangers) /2)
+		front = msg.ranges[middle_sensor]
+		print("Sensor: " + str(front)]
+		self.whisker = front
+	
+	def forward(self):
+		self.move_cmd.linear.x = self.linear_speed
+
+	def timer_callback(self):
+		if(self.whisker < 2.0):
+			self.move_cmd.angular.z = 2.0
+		else:
+			self.move_cmd.angular.z = 0.0
+		self.cmd_pub.publish(self.move_cmd)
+		#self.move_cmd.linear.x = self.linear_speed
+
+def main(args = None):
+	rclypy.init(args=args)
+	turtle_controller = Walk()
+	rclpy.spin(turtle_controller)
+	turtle_controller ... (destoy)
+
+if __main__ # need to finish
