@@ -22,7 +22,7 @@ class Walk(Node):
 		#self.subscription # prevent unused variable warning
 
 	def sensor_callback(self, msg):
-		middle_sensor = int(len(msg.rangers) /2)
+		middle_sensor = int(len(msg.ranges) / 2)
 		front = msg.ranges[middle_sensor]
 		print("Sensor: " + str(front))
 		self.whisker = front
@@ -39,7 +39,7 @@ class Walk(Node):
 		#self.move_cmd.linear.x = self.linear_speed
 
 def main(args = None):
-	rclypy.init(args=args)
+	rclpy.init(args=args)
 	turtle_controller = Walk()
 	rclpy.spin(turtle_controller)
 	turtle_controller.destroy_node()
