@@ -18,7 +18,7 @@ class Walk(Node):
 			LaserScan,
 			'/base_scan',
 			self.sensor_callback,
-			20)
+			10)
 		#self.subscription # prevent unused variable warning
 
 	def sensor_callback(self, msg):
