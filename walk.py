@@ -24,7 +24,7 @@ class Walk(Node):
 	def sensor_callback(self, msg):
 		middle_sensor = int(len(msg.rangers) /2)
 		front = msg.ranges[middle_sensor]
-		print("Sensor: " + str(front)]
+		print("Sensor: " + str(front))
 		self.whisker = front
 	
 	def forward(self):
