@@ -1,4 +1,5 @@
-## need rlcpy
+import rclpy
+from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from sensor_msgs.mgs import LaserScan
 
@@ -43,4 +44,5 @@ def main(args = None):
 	rclpy.spin(turtle_controller)
 	turtle_controller ... (destoy)
 
-if __main__ # need to finish
+if __name__ == '__main__':
+    main()
