@@ -1,0 +1,50 @@
+from sensor_msgs.msg import LaserScan
+
+class Walk(node):
+    def __init__(self):
+        super().__init__('Walk')
+        self.cmd_pub = self.create_publisher(Twist,'/cmd_vel',10)
+        timer_period = 0.5
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.time = 0
+        self.whisker = 5.0
+        self.linear_speed = 0.8
+        self.move_cmd = Twist()
+        self.move_cmd.linear.x = self.linear_speed
+        self.subscription = self.create_subscription(
+            LaserScan,
+            '/base_scan',
+            self.sensor_Callback,
+            10)
+        #self.subscription # prevent unused variable warning
+
+def sensor_callback(self,msg)
+    middle_sensor = int(len(msg.ranges) /2) //Lidar makes an arc, returns the middle/straight ahead
+    front = msg.ranges[middle_sensor]
+    print("Sensor: " + str(front))
+    self.whisker = front
+
+def forward(self)
+    self.move_cmd.linear.x = self.linear_speed
+
+def timer_callback(self): 
+    if(self.whisker < 2.0):
+        self.move_cmd.angular.z = 2.0
+    else: 
+        self.move_cmd.angular.z = 0.0
+    self.cmd_pub.publish(self.move_cmd)
+
+def main(args=None):
+    rclpy.init(args=args)
+    turtle_controller = Walk()
+    rclpy.spin(turtle_controller)
+    turtle_controller.destroy.node()
+    rclpy.shutdown()
+
+if __name__ == '__main__'
+    main()
+
+# starting points to test: (-7, -7), (5, -3.5)
+# code unchanged will roughly earn an 80
+# grading will keep track of the max distance travelled
+# most effort is focused on sensor_callback to build a more robust architecture
