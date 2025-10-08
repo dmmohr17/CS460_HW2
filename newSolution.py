@@ -43,7 +43,7 @@ class Walk(Node):
 			if(self.left < self.right and self.direction == -1):
 				self.direction = 0
 				self.move_cmd.angular.z = -2.0
-			elif(self.left > self.right and self.direction == -1):
+			elif(self.direction == -1): # self.left > self.right
 				self.direction = 1
 				self.move_cmd.angular.z = 2.0
 			else:
