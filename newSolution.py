@@ -25,7 +25,7 @@ class Walk(Node):
 
 	def sensor_callback(self, msg):
 		middle_sensor = int(len(msg.ranges) / 2)
-		quarterAngle = middle_sensor / 2
+		quarterAngle = int(middle_sensor / 2)
 		front = msg.ranges[middle_sensor]
 		frontLeft = msg.ranges[middle_sensor - quarterAngle]
 		frontRight = msg.ranges[middle_sensor + quarterAngle]
@@ -39,9 +39,9 @@ class Walk(Node):
 
 	def timer_callback(self):
 		if(self.whisker < 2.0):
-			if(self.left < self.right)
+			if(self.left < self.right):
 				self.move_cmd.angular.z = -2.0
-			else # self.left > self.right
+			else: # self.left > self.right
 				self.move_cmd.angular.z = 2.0
 			self.move_cmd.linear.x = 0.0
 		else:
