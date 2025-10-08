@@ -14,15 +14,17 @@ class Walk(Node):
 		self.linear_speed = 0.8
 		self.move_cmd = Twist()
 		self.move_cmd.linear.x = self.linear_speed
+		# self.move_cmd.angular.z = 0.0
 		
-		self.e_prev = 0; # tracks previous error
-		self.e_sum = 0 # sum of all errors
-		self.e = 0 # error 
-		self.dedt = 0 # derivative
-		self.travel = 1 # train in pseudocode
-		self.K_P = 1
-		self.K_I = 1
-		self.K_D = 0
+		self.dt = 0.1
+		self.e_prev = 0.0 # tracks previous error
+		self.e_sum = 0.0 # sum of all errors
+		self.e = 0.0 # current error 
+		self.dedt = 0.0 # derivative
+		self.target = 1.0 # target travel
+		self.K_P = 1.0
+		self.K_I = 1.0
+		self.K_D = 0.0
 		self.u = 0
 		
 		self.subscription = self.create_subscription(
@@ -42,16 +44,28 @@ class Walk(Node):
 		self.move_cmd.linear.x = self.linear_speed # = self.whisker / 5
 
 	def timer_callback(self):
-		self.e = self.whisker - self.travel
-		self.e_sum = self.e_sum + self.e * self.travel
+		self.e = self.whisker - self.target
+		self.e_sum = self.e_sum + (self.e * self.dt)
+		self.dedt = (self.e - self.e_prev) / self.dt
+
+		"""
 		if(self.travel == 0):
 			self.dedt = 0
 		else:
 			self.dedt = (self.e - self.e_prev) / self.travel
+		"""
+		# testing this
+		MAX_E_SUM = 10.0
+        self.e_sum = max(-MAX_E_SUM, min(self.e_sum, MAX_E_SUM))
+	
 		self.u = self.K_P * self.e + self.K_I * self.e_sum + self.K_D * self.dedt
-		self.travel = self.u
+
+		# testing this also
+        max_speed = 1.0  # m/s
+        self.move_cmd.linear.x = max(0.0, min(self.u, max_speed))
+
 		self.e_prev = self.e
-		self.move_cmd.linear.x = self.travel
+		# self.move_cmd.linear.x = self.travel
 		if(self.whisker < 2.0):
 			self.move_cmd.angular.z = 2.0
 		else:
