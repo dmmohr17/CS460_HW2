@@ -52,13 +52,13 @@ class Walk(Node):
 				else:
 					self.move_cmd.angular.z = 2.0
 			self.move_cmd.linear.x = 0.0
-		elif(self.left < 0.01 and (self.direction == -1 or self.direction == 0)):
+		elif(self.left < 0.25 and (self.direction == -1 or self.direction == 0)):
 			self.direction = 0
-			self.move_cmd.angular.z = -2.0
+			self.move_cmd.angular.z = -1.0
 			self.move_cmd.linear.x = 0.0
-		elif(self.right < 0.01 and (self.direction == -1 or self.direction == 1)):
+		elif(self.right < 0.25 and (self.direction == -1 or self.direction == 1)):
 			self.direction = 1
-			self.move_cmd.angular.z = 2.0
+			self.move_cmd.angular.z = 1.0
 			self.move_cmd.linear.x = 0.0
 		else:
 			if(self.direction != -1):
