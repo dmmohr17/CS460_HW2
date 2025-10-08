@@ -52,11 +52,11 @@ class Walk(Node):
 				else:
 					self.move_cmd.angular.z = 2.0
 			self.move_cmd.linear.x = 0.0
-		elif(self.left < 0.5 and self.direction == -1):
+		elif(self.left < 0.5 and (self.direction == -1 or self.direction == 0)):
 			self.direction = 0
 			self.move_cmd.angular.z = -2.0
 			self.move_cmd.linear.x = 0.0
-		elif(self.right < 0.5 and self.direction == -1):
+		elif(self.right < 0.5 and (self.direction == -1 or self.direction == 1)):
 			self.direction = 1
 			self.move_cmd.angular.z = 2.0
 			self.move_cmd.linear.x = 0.0
