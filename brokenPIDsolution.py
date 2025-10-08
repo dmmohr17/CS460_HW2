@@ -56,20 +56,22 @@ class Walk(Node):
 		"""
 		# testing this
 		MAX_E_SUM = 10.0
-        self.e_sum = max(-MAX_E_SUM, min(self.e_sum, MAX_E_SUM))
+		self.e_sum = max(-MAX_E_SUM, min(self.e_sum, MAX_E_SUM))
 	
 		self.u = self.K_P * self.e + self.K_I * self.e_sum + self.K_D * self.dedt
 
 		# testing this also
-        max_speed = 1.0  # m/s
-        self.move_cmd.linear.x = max(0.0, min(self.u, max_speed))
+		max_speed = 1.0  # m/s
+        	# self.move_cmd.linear.x = max(0.0, min(self.u, max_speed))
 
 		self.e_prev = self.e
 		# self.move_cmd.linear.x = self.travel
 		if(self.whisker < 2.0):
 			self.move_cmd.angular.z = 2.0
+			self.move_cmd.linear.x = 0.0
 		else:
 			self.move_cmd.angular.z = 0.0
+			self.move_cmd.linear.x = max(0.0, min(self.u, max_speed))
 		self.cmd_pub.publish(self.move_cmd)
 		#self.move_cmd.linear.x = self.linear_speed
 
