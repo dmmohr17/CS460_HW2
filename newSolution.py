@@ -32,7 +32,7 @@ class Walk(Node):
 		front = msg.ranges[middle_sensor]
 		frontLeft = msg.ranges[middle_sensor - quarterAngle]
 		frontRight = msg.ranges[middle_sensor + quarterAngle]
-		print("Sensor: " + str(front))
+		#print("Sensor: " + str(front))
 		self.whisker = front
 		self.left = frontLeft
 		self.right = frontRight
@@ -46,9 +46,9 @@ class Walk(Node):
 			self.move_cmd.linear.x = 0.0
 			self.cycleRotate += 1
 			if(self.cycleRotate == (1 / self.timer_period)):
-				self.cycleDetection = 0
+				self.cycleDetection = -1
 				self.cycleRotate = 0
-		elif(self.whisker < 2.0):
+		elif(self.whisker < 0.5):
 			if(self.left < self.right and self.direction == -1):
 				self.direction = 0
 				self.cycleDetection += 1
@@ -78,7 +78,7 @@ class Walk(Node):
 		else:
 			if(self.direction != -1):
 				self.direction = -1
-				self.cycleDetection = 0
+				self.cycleDetection = -1
 			self.move_cmd.angular.z = 0.0
 			self.move_cmd.linear.x = self.linear_speed
 		self.cmd_pub.publish(self.move_cmd)
