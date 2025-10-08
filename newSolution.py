@@ -7,13 +7,15 @@ class Walk(Node):
 	def __init__(self):
 		super().__init__('Walk')
 		self.cmd_pub = self.create_publisher(Twist,'/cmd_vel', 10)
-		timer_period = 0.2 # seconds
-		self.timer = self.create_timer(timer_period, self.timer_callback)
+		self.timer_period = 0.2 # seconds
+		self.timer = self.create_timer(self.timer_period, self.timer_callback)
 		self.time = 0
 		self.whisker = 5.0
 		self.left = 0.0
 		self.right = 10.0
 		self.direction = -1
+		self.cycleDetection = -1
+		self.cycleRotate = 0
 		self.linear_speed = 0.8
 		self.move_cmd = Twist()
 		self.move_cmd.linear.x = self.linear_speed
@@ -39,7 +41,14 @@ class Walk(Node):
 		self.move_cmd.linear.x = self.linear_speed
 
 	def timer_callback(self):
-		if(self.whisker < 2.0):
+		if(self.cycleDetection >= 10):
+			self.move_cmd.angular.z = 3.0
+			self.move_cmd.linear.x = 0.0
+			self.cycleRotate += 1
+			if(self.cycleRotate == (1 / self.timer_period)):
+				self.cycleDetection = 0
+				self.cycleRotate = 0
+		elif(self.whisker < 2.0):
 			if(self.left < self.right and self.direction == -1):
 				self.direction = 0
 				self.move_cmd.angular.z = -2.0
@@ -63,6 +72,7 @@ class Walk(Node):
 		else:
 			if(self.direction != -1):
 				self.direction = -1
+				self.cycleDetection += 1
 			self.move_cmd.angular.z = 0.0
 			self.move_cmd.linear.x = self.linear_speed
 		self.cmd_pub.publish(self.move_cmd)
