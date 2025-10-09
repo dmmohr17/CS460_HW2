@@ -41,14 +41,14 @@ class Walk(Node):
 		self.move_cmd.linear.x = self.linear_speed
 
 	def timer_callback(self):
-		if(self.cycleDetection >= 20):
+		if(self.cycleDetection >= 5):
 			self.move_cmd.angular.z = 3.0
 			self.move_cmd.linear.x = 0.0
 			self.cycleRotate += 1
 			if(self.cycleRotate == (1 / self.timer_period)):
 				self.cycleDetection = -1
 				self.cycleRotate = 0
-		elif(self.whisker < 1.0):
+		elif(self.whisker < 2.0):
 			if(self.left < self.right and self.direction == -1):
 				self.direction = 0
 				self.cycleDetection += 1
@@ -62,19 +62,19 @@ class Walk(Node):
 					self.move_cmd.angular.z = -2.0
 				else:
 					self.move_cmd.angular.z = 2.0
-			self.move_cmd.linear.x = 0.0
-		elif(self.left < 0.5 and self.left < self.right and (self.direction == -1 or self.direction == 0)):
+			self.move_cmd.linear.x = 0.3
+		elif(self.left < 1.0 and self.left < self.right and (self.direction == -1 or self.direction == 0)):
 			if(self.direction == -1):
 				self.cycleDetection += 1
 				self.direction = 0
 			self.move_cmd.angular.z = -1.0
-			self.move_cmd.linear.x = 0.0
-		elif(self.right < 0.5 and (self.direction == -1 or self.direction == 1)):
+			self.move_cmd.linear.x = 0.3
+		elif(self.right < 1.0 and (self.direction == -1 or self.direction == 1)):
 			if(self.direction == -1):
 				self.cycleDetection += 1
 				self.direction = 1
 			self.move_cmd.angular.z = 1.0
-			self.move_cmd.linear.x = 0.0
+			self.move_cmd.linear.x = 0.3
 		else:
 			if(self.direction != -1):
 				self.direction = -1
