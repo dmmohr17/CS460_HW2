@@ -63,17 +63,17 @@ class Walk(Node):
 				else:
 					self.move_cmd.angular.z = 2.0
 			self.move_cmd.linear.x = 0.0
-		elif(self.left < 0.3 and self.left < self.right and (self.direction == -1 or self.direction == 1)):
-			if(self.direction == -1):
-				self.cycleDetection += 1
-				self.direction = 1
-			self.move_cmd.angular.z = 1.0
-			self.move_cmd.linear.x = 0.0
-		elif(self.right < 0.3 and (self.direction == -1 or self.direction == 0)):
+		elif(self.left < 0.3 and self.left < self.right and (self.direction == -1 or self.direction == 0)):
 			if(self.direction == -1):
 				self.cycleDetection += 1
 				self.direction = 0
 			self.move_cmd.angular.z = -1.0
+			self.move_cmd.linear.x = 0.0
+		elif(self.right < 0.3 and (self.direction == -1 or self.direction == 1)):
+			if(self.direction == -1):
+				self.cycleDetection += 1
+				self.direction = 1
+			self.move_cmd.angular.z = 1.0
 			self.move_cmd.linear.x = 0.0
 		else:
 			if(self.direction != -1):
