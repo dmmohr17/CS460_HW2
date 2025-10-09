@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import LaserScan
+import random
 
 class Walk(Node):
 	def __init__(self):
@@ -48,8 +49,15 @@ class Walk(Node):
 			if(self.cycleRotate == (1 / self.timer_period)):
 				self.cycleDetection = -1
 				self.cycleRotate = 0
-		elif(self.whisker < 2.0):
-			if(self.left < self.right and self.direction == -1):
+		elif(self.whisker < 1.2):
+			if(self.left >= 0.6 and self.right >= 0.6 and self.direction == -1):
+				self.direction = random.choice([0, 1])
+				if(self.direction == 0):
+					self.move_cmd.angular.z = 2.0
+				else:
+					self.move_cmd.angular.z = -2.0
+				print("Random turn: " + str(self.direction))
+			elif(self.left < self.right and self.direction == -1):
 				self.direction = 0
 				self.cycleDetection += 1
 				self.move_cmd.angular.z = -2.0
@@ -63,13 +71,13 @@ class Walk(Node):
 				else:
 					self.move_cmd.angular.z = 2.0
 			self.move_cmd.linear.x = 0.3
-		elif(self.left < 1.0 and self.left < self.right and (self.direction == -1 or self.direction == 0)):
+		elif(self.left < 0.6 and self.left < self.right and (self.direction == -1 or self.direction == 0)):
 			if(self.direction == -1):
 				self.cycleDetection += 1
 				self.direction = 0
 			self.move_cmd.angular.z = -1.0
 			self.move_cmd.linear.x = 0.3
-		elif(self.right < 1.0 and (self.direction == -1 or self.direction == 1)):
+		elif(self.right < 0.6 and (self.direction == -1 or self.direction == 1)):
 			if(self.direction == -1):
 				self.cycleDetection += 1
 				self.direction = 1
