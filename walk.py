@@ -5,178 +5,150 @@ from sensor_msgs.msg import LaserScan
 import time
 import math
 from nav_msgs.msg import Odometry
+from collections import deque
+
 
 class Walk(Node):
     def __init__(self):
         super().__init__('Walk')
-        self.cmd_pub = self.create_publisher(Twist,'/cmd_vel', 10)
-        timer_period = 0.01 # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.time = 0
-        self.x = 0
-        self.y = 0
-        self.whisker = 5.0
-        self.whisker_array =[]
-        self.degrees = 0
-        dimension = 16 * 4  #split each coordinate into 4 boxes, let robot start in the center of the array
-        self.arr = [[0] * dimension for _ in range(dimension)]
-        '''self.arr = [[[0,0]] * dimension for _ in range(dimension)]
-        for i in range(0, dimension):
-            for j in range(0, dimension):
-                if i >= dimension/2 and j >= dimension/2:
-                    self.arr[i][j][1] = i+j-64-64
-                elif i >= dimension/2 and j <= dimension/2:
-                    self.arr[i][j][1] = i-64+64-j
-                elif i <= dimension/2 and j >= dimension/2:
-                    self.arr[i][j][1] = 64-i+j-64
-                elif i <= dimension/2 and j <= dimension/2:
-                    self.arr[i][j][1] = 64-i+64-j
-        '''
-        #print(self.arr)
-        self.linear_speed = 0.0
-        self.move_cmd = Twist()
-        self.move_cmd.linear.x = self.linear_speed
-        robocallback_temp = (lambda : self.move_robot(0,0))
-        self.timer = self.create_timer(timer_period, robocallback_temp)
-        self.subscription = self.create_subscription(
-            LaserScan,
-            '/base_scan',
-            self.sensor_callback,
-            10)
-        #super().__init__('Track')
+        self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.subscription_scan = self.create_subscription(LaserScan, '/base_scan', self.sensor_callback, 30)
+        self.subscription_odom = self.create_subscription(Odometry, '/ground_truth', self.listener_callback, 30)
+        self.timer = self.create_timer(0.01, self.timer_callback)
+
+        # Robot position and heading
+        self.x = 0.0
+        self.y = 0.0
+        self.degrees = 0.0
+
+        # Start setup
+        self.isStart = True
+        self.startPos = [0.0, 0.0]
         self.startTime = time.time()
-        self.time = 0
-        self.maxDistance = 0
-        self.current_distance = 0
-        self.isStart = False
-        self.startPos = [0, 0]
-        self.subscription = self.create_subscription(
-            Odometry,
-            '/ground_truth',
-            self.listener_callback,
-            10)
-        #self.subscription # prevent unused variable warning
 
-    def displayMap(self,list2d):
-    # 2d array - unknown 0, 1 wall, 2 open
-    # all unknown ░
-        size = len(list2d)
-        class fourpix:
-            def __init__(self,topleft,topright, bottomleft, bottomright):
-                self.a = [0,0,0,0]
+        self.map_resolution = 0.25        # resolution per grid cell
+        self.map_size = 16.0              # map is 16x16
+        self.grid_dim = int(self.map_size / self.map_resolution) # internal grid 
+        self.arr = [[0 for _ in range(self.grid_dim)] for _ in range(self.grid_dim)]
+        # 0=unknown, 1=wall, 2=free
+        self.path = []
+        self.last_plan_time = 0.0
+        self.goal_x = None
+        self.goal_y = None
+        self.safe_clearance = 0.1
 
-                self.a[0] = (topleft)
-                self.a[1]  = (topright)
-                self.a[2]  = (bottomleft)
-                self.a[3]  = (bottomright)
-            def getChar(self):
-                if all(x == 0 for x in self.a):
-                    return '0'
-                if all(x == 1 for x in self.a):
-                    return '█'
-                if all(x == 2 for x in self.a):
-                    return ' '
-                if (self.a[1] == self.a[2] == self.a[3] == 1):
-                    return '▟'
-                if (self.a[0] == self.a[2] == self.a[3] == 1):
-                    return '▙'
-                if (self.a[0] == self.a[1] == self.a[3] == 1):
-                    return '▜'
-                if (self.a[0] == self.a[1] == self.a[2] == 1):
-                    return '▛'
-                if (self.a[0] == self.a[1] == 1 and sum(self.a) == 2):
-                    return '▀'
-                if (self.a[2] == self.a[3] == 1 and sum(self.a) == 2):
-                    return '▄'
-                if (self.a[1] == self.a[2] == 1 and sum(self.a) == 2):
-                    return '▐'
-                if (self.a[0] == self.a[3] == 1 and sum(self.a) == 2):
-                    return '▌'
-                if (self.a[0] == 1):
-                    return '▘'
-                if (self.a[1] == 1):
-                    return '▝'
-                if (self.a[2] == 1):
-                    return '▖'
-                if (self.a[3] == 1):
-                    return '▗'
-                return 'X'
-    
-        for y in range(0,size,1):
-            append = ''
-            for x in range(0,size,1):
-                append = append+str(list2d[y][x])
-            print(append)
-    def fill_array(self):
-        for i in range(0,270):
-            angle = self.degrees-135+i
-            curr_val =int(4*self.whisker_array[i])
-            j = 0
-            x_distance=0
-            y_distance=0
-            while (j < curr_val):
-                x_distance = int(j * math.cos(math.radians(angle)))
-                y_distance = int(j * math.sin(math.radians(angle)))
-                j+=1
-                self.arr[self.x+x_distance][self.y+y_distance]=2
-            if (self.whisker_array[i]!=5):
-                self.arr[self.x+x_distance][self.y+y_distance]=1
-        #self.displayMap(self.arr)
-        for i in range(0,len(self.arr)):
-            pass
-            #print(self.arr[i])
-    def move_robot(self,x,y):
-        #print("self.x")
-        #print(self.x)
-        if (self.x > x + 0.1):
-            if(self.degrees >` 182 or self.degrees < 178):
-                print(self.degrees)
-                if(self.degrees>182):
-                    #print(self.degrees)
-                    self.move_cmd.angular.z = -2.0
-                    self.cmd_pub.publish(self.move_cmd)
-                if(self.degrees<178):
-                    #print(self.degrees)
-                    self.move_cmd.angular.z = 2.0
-                    self.cmd_pub.publish(self.move_cmd)
-        else:
-            self.move_cmd.angular.z = 0.0
-            self.cmd_pub.publish(self.move_cmd)
-        if(True):
-            pass
-            #self.move_cmd.angular.z = 2.0
-            #self.move_cmd.linear.x = 0.0 
-        else:
-            self.move_cmd.angular.z = 0.0
-            self.move_cmd.linear.x = 2.0
-        self.cmd_pub.publish(self.move_cmd)
-        
-    def sensor_callback(self, msg):
-        middle_sensor = int(len(msg.ranges) / 2)
+        self.visited = [[False] * len(self.arr) for _ in range(len(self.arr))]
+        self.last_goal_update = time.time()
+        self.current_target = None
+
+        # Laser scan data
+        self.front_distance = float('inf')
+        self.left_distance = float('inf')
+        self.right_distance = float('inf')
+
+        self.move_cmd = Twist()
+
+    # Visualization
+    def display_map_ascii(self):
+    # Prints current visual of map constantly
+        display = ""
+        robot_gx, robot_gy = self.world_to_grid(self.x, self.y)
+        goal_gx, goal_gy = self.world_to_grid(self.goal_x, self.goal_y) if self.goal_x is not None else (-1, -1)
+
+        for y in reversed(range(self.grid_dim)):
+            line = ""
+            for x in range(self.grid_dim):
+                if x == robot_gx and y == robot_gy:
+                    line += "R" # Robot
+                elif x == goal_gx and y == goal_gy:
+                    line += "G" # Goal
+                elif self.arr[y][x] == 0:
+                    line += "░" # Unknown
+                elif self.arr[y][x] == 1:
+                    line += "W" # Wall
+                elif self.arr[y][x] == 2:
+                    line += "·" # Free
+                else:
+                    line += "?" # Error
+            display += line + "\n"
+        print(display)
+
+    # Sensor callback
+    def sensor_callback(self, msg: LaserScan):
+        # Update occupancy grid from sensor data
         self.whisker_array = msg.ranges
-        #print("Message" + str(msg))
-        front = msg.ranges[middle_sensor]
-        #print("Sensor: " + str(front))
-        #print(len(msg.ranges))
-        self.whisker = front
-        self.fill_array()
-            
+        angle_inc = msg.angle_increment
+        angle_min = msg.angle_min
+        max_range = msg.range_max if msg.range_max > 0 else 5.0  # fallback if unspecified
+
+        robot_gx, robot_gy = self.world_to_grid(self.x, self.y)
+
+        # Mark a small free circle around the robot
+        # This checks safety since the robot is larger than a dot
+        for dx in range(-2, 3):
+            for dy in range(-2, 3):
+                gx = robot_gx + dx
+                gy = robot_gy + dy
+                if 0 <= gx < self.grid_dim and 0 <= gy < self.grid_dim:
+                    self.arr[gy][gx] = 2
+
+        # Process each ray
+        for i, r in enumerate(msg.ranges):
+            if math.isnan(r) or r <= 0.01:
+                continue
+
+            # Cap extremely large values but store max range
+            r = min(r, max_range)
+            global_angle = math.radians(self.degrees) + (angle_min + i * angle_inc)
+    
+            # Compute world coordinates of ray endpoint
+            wx = self.x + r * math.cos(global_angle)
+            wy = self.y + r * math.sin(global_angle)
+            gx, gy = self.world_to_grid(wx, wy)
+
+            # Trace along the ray and mark free space
+            steps = int(r / self.map_resolution)
+            for s in range(steps):
+                fx = self.x + s * self.map_resolution * math.cos(global_angle)
+                fy = self.y + s * self.map_resolution * math.sin(global_angle)
+                fx_g, fy_g = self.world_to_grid(fx, fy)
+                if 0 <= fx_g < self.grid_dim and 0 <= fy_g < self.grid_dim:
+                    if self.arr[fy_g][fx_g] == 0:
+                        self.arr[fy_g][fx_g] = 2
+    
+            # Only mark a wall if the ray was shorter than max range
+            if r < max_range * 0.99:
+                if 0 <= gx < self.grid_dim and 0 <= gy < self.grid_dim:
+                    self.arr[gy][gx] = 1
+    
+
+    # Odometry listener
     def listener_callback(self, msg):
+        # Calculate angles from quaternion provided
         w = msg.pose.pose.orientation.w
         z = msg.pose.pose.orientation.z
-        theta = (2.0 * math.atan2(z,w))
+        theta = (2.0 * math.atan2(z, w))
         degrees = math.degrees(theta)
-        if(degrees<0):
-            degrees+=360
+        if degrees < 0: # Loop over for negative degrees
+            degrees += 360
         self.degrees = degrees
-        x = msg.pose.pose.position.x+8
-        y = msg.pose.pose.position.y+8
-        self.x = int(x*4)
-        self.y = int(y*4)
 
-        if self.isStart == False:
+        x = msg.pose.pose.position.x
+        y = msg.pose.pose.position.y
+        self.x = x
+        self.y = y
+
+        if self.isStart: # Set goal based on initial robot location
+            if x < 0:
+                self.goal_x = 8
+            else:
+                self.goal_x = -8
+            if y < 0:
+                self.goal_y = 8
+            else:
+                self.goal_y = -8
+            self.isStart = False
             self.startPos = [x, y]
-            self.isStart = True
 
         dx = x - self.startPos[0]
         dy = y - self.startPos[1]
@@ -185,26 +157,137 @@ class Walk(Node):
         curTime = time.time()
         elapsed = curTime - self.startTime
 
-        print("Elapsed Time: " + str(elapsed))
-        print("Distance: " + str(distanceTraveled))
+        print("Elapsed Time:", elapsed)
+        print("Distance:", distanceTraveled)
 
+        cell_x, cell_y = self.world_to_grid(self.x, self.y)
+        self.visited[cell_y][cell_x] = True
+
+
+    # Coordinate Conversion
+    def world_to_grid(self, x, y):
+        gx = int((x + 8) / self.map_resolution)
+        gy = int((y + 8) / self.map_resolution)
+        gx = max(0, min(self.grid_dim - 1, gx))
+        gy = max(0, min(self.grid_dim - 1, gy))
+        return gx, gy
+
+
+    # Timer callback
     def timer_callback(self):
-        if(self.whisker < 2.0):
-            self.move_cmd.angular.z = 2.0
-        else:
-            self.move_cmd.angular.z = 0.0
-        self.cmd_pub.publish(self.move_cmd)
-        #self.move_cmd.linear.x = self.linear_speed
+        print(self.display_map_ascii()) # Display current map
 
-def main(args = None):
+        if self.goal_x is None or self.goal_y is None:
+            sx, sy = self.x, self.y
+            self.goal_x = self.map_size - sx
+            self.goal_y = self.map_size - sy
+            self.get_logger().info(f"Goal set to ({self.goal_x:.2f}, {self.goal_y:.2f})")
+
+        start = self.world_to_grid(self.x, self.y)
+        goal = self.world_to_grid(self.goal_x, self.goal_y)
+
+        # Track the current stats of the map
+        free_count = sum(row.count(2) for row in self.arr)
+        wall_count = sum(row.count(1) for row in self.arr)
+        self.get_logger().info(f"Map coverage: free={free_count}, walls={wall_count}")
+
+        # Replan occasionally
+        if (not self.path) or (time.time() - self.last_plan_time > 2.0):
+            self.path = self.compute_a_star(start, goal)
+            self.last_plan_time = time.time()
+            if not self.path:
+                self.get_logger().info("No path found yet.")
+                return
+
+        if not self.path:
+            return
+
+        next_cell = self.path[0]
+        next_world_x = next_cell[0] * self.map_resolution - 8
+        next_world_y = next_cell[1] * self.map_resolution - 8
+
+        dx = next_world_x - self.x
+        dy = next_world_y - self.y
+        dist = math.sqrt(dx ** 2 + dy ** 2)
+        angle_to_target = math.degrees(math.atan2(dy, dx))
+        heading_error = (angle_to_target - self.degrees + 540) % 360 - 180
+
+        twist = Twist()
+        if abs(heading_error) > 10:
+            twist.angular.z = 3.2 * (heading_error / abs(heading_error))
+            twist.linear.x = 0.0
+        else:
+            twist.angular.z = 1.0 * heading_error / 10.0
+            twist.linear.x = 1.6
+
+        if dist < self.map_resolution * 0.8:
+            self.path.pop(0)
+
+        self.cmd_pub.publish(twist)
+
+
+    # A* Search
+    def compute_a_star(self, start, goal):
+        from heapq import heappush, heappop
+        grid = self.arr
+        dim = self.grid_dim
+        clearance = max(1, int(self.safe_clearance / self.map_resolution) - 1)
+
+        def in_bounds(n):
+            return 0 <= n[0] < dim and 0 <= n[1] < dim
+
+        def passable(n):
+            x, y = n
+            for dx in range(-clearance, clearance + 1):
+                for dy in range(-clearance, clearance + 1):
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < dim and 0 <= ny < dim:
+                        if grid[ny][nx] == 1:
+                            return False
+            return grid[y][x] != 1
+
+        def heuristic(a, b):
+            return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+        frontier = []
+        heappush(frontier, (0, start))
+        came_from = {start: None}
+        cost_so_far = {start: 0}
+
+        while frontier:
+            _, current = heappop(frontier)
+            if current == goal:
+                break
+            for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+                nxt = (current[0] + dx, current[1] + dy)
+                if not in_bounds(nxt) or not passable(nxt):
+                    continue
+                new_cost = cost_so_far[current] + 1
+                if nxt not in cost_so_far or new_cost < cost_so_far[nxt]:
+                    cost_so_far[nxt] = new_cost
+                    priority = new_cost + heuristic(goal, nxt)
+                    heappush(frontier, (priority, nxt))
+                    came_from[nxt] = current
+
+        if goal not in came_from:
+            return []
+
+        path = []
+        current = goal
+        while current != start:
+            path.append(current)
+            current = came_from[current]
+        path.reverse()
+        return path
+
+
+def main(args=None):
     rclpy.init(args=args)
     turtle_controller = Walk()
-    #tracker_node = Tracker()
-    #rclpy.spin(tracker_node)
     rclpy.spin(turtle_controller)
-    #tracker_node.destroy_node()
     turtle_controller.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
