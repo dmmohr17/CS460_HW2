@@ -12,8 +12,8 @@ class Walk(Node):
     def __init__(self):
         super().__init__('Walk')
         self.cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
-        self.subscription_scan = self.create_subscription(LaserScan, '/base_scan', self.sensor_callback, 30)
-        self.subscription_odom = self.create_subscription(Odometry, '/ground_truth', self.listener_callback, 30)
+        self.subscription_scan = self.create_subscription(LaserScan, '/base_scan', self.sensor_callback, 20)
+        self.subscription_odom = self.create_subscription(Odometry, '/ground_truth', self.listener_callback, 20)
         self.timer = self.create_timer(0.01, self.timer_callback)
 
         # Robot position and heading
