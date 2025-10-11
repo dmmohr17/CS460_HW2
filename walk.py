@@ -71,7 +71,7 @@ class Walk(Node):
                 else:
                     line += "?" # Error
             display += line + "\n"
-        print(display)
+        # print(display)
 
     # Sensor callback
     def sensor_callback(self, msg: LaserScan):
@@ -157,8 +157,8 @@ class Walk(Node):
         curTime = time.time()
         elapsed = curTime - self.startTime
 
-        print("Elapsed Time:", elapsed)
-        print("Distance:", distanceTraveled)
+        # print("Elapsed Time:", elapsed)
+        # print("Distance:", distanceTraveled)
 
         cell_x, cell_y = self.world_to_grid(self.x, self.y)
         self.visited[cell_y][cell_x] = True
@@ -175,13 +175,13 @@ class Walk(Node):
 
     # Timer callback
     def timer_callback(self):
-        print(self.display_map_ascii()) # Display current map
+        # print(self.display_map_ascii()) # Display current map
 
         if self.goal_x is None or self.goal_y is None:
             sx, sy = self.x, self.y
             self.goal_x = self.map_size - sx
             self.goal_y = self.map_size - sy
-            self.get_logger().info(f"Goal set to ({self.goal_x:.2f}, {self.goal_y:.2f})")
+            # self.get_logger().info(f"Goal set to ({self.goal_x:.2f}, {self.goal_y:.2f})")
 
         start = self.world_to_grid(self.x, self.y)
         goal = self.world_to_grid(self.goal_x, self.goal_y)
@@ -189,14 +189,14 @@ class Walk(Node):
         # Track the current stats of the map
         free_count = sum(row.count(2) for row in self.arr)
         wall_count = sum(row.count(1) for row in self.arr)
-        self.get_logger().info(f"Map coverage: free={free_count}, walls={wall_count}")
+        # self.get_logger().info(f"Map coverage: free={free_count}, walls={wall_count}")
 
         # Replan occasionally
         if (not self.path) or (time.time() - self.last_plan_time > 2.0):
             self.path = self.compute_a_star(start, goal)
             self.last_plan_time = time.time()
             if not self.path:
-                self.get_logger().info("No path found yet.")
+                # self.get_logger().info("No path found yet.")
                 return
 
         if not self.path:
